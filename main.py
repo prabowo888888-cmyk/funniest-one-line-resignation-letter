@@ -25,8 +25,19 @@ def main() -> int:
 
     with open(path, "rb") as f:
         raw = f.read()
+    # Re-read the file instead of trusting the in-memory line: the
+    # guard must prove what actually landed on disk, not what we
+    # intended to write. Checking the raw bytes also catches a
+    # trailing newline or a stray encoding change.
     text = raw.decode("utf-8")
 
+    if raw != LINE.encode("utf-8"):
+        print(
+            f"guard failed: file is {len(raw)} bytes, "
+            f"expected {len(LINE.encode('utf-8'))} for the line",
+            file=sys.stderr,
+        )
+        return 1
     if text != LINE:
         print("guard failed: file content does not match the line", file=sys.stderr)
         return 1
@@ -44,7 +55,10 @@ def main() -> int:
         print("guard failed: entry is only whitespace or padded", file=sys.stderr)
         return 1
 
-    print(f"wrote {path}: {len(text)} characters, one line, no trailing newline")
+    print(
+        f"wrote {path}: {len(text)} characters, {len(raw)} bytes, "
+        "one line, no trailing newline"
+    )
     return 0
 
 
